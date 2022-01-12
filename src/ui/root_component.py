@@ -4,7 +4,9 @@ import tkinter as tk
 from connectors.binance_futures import BinanceFuturesClient
 from connectors.bitmex import BitmexClient
 from ui.logging_component import Logging
+from ui.strategy_component import StrategyEditor
 from ui.styling import BG_COLOR
+from ui.trades_component import TradesWatch
 from ui.watchlist_component import Watchlist
 
 
@@ -27,11 +29,19 @@ class Root(tk.Tk):
         self._right_frame = tk.Frame(self, bg=BG_COLOR)
         self._right_frame.pack(side=tk.LEFT)
 
-        self._watchlist_frame = Watchlist(self.binance.contracts, self.bitmex.contracts, self._left_frame, bg=BG_COLOR)
+        self._watchlist_frame = Watchlist(self.binance.contracts, self.bitmex.contracts,
+                                          self._left_frame, bg=BG_COLOR)
         self._watchlist_frame.pack(side=tk.TOP)
 
-        self._logging_frame = Logging(self._left_frame, bg=BG_COLOR)
-        self._logging_frame.pack(side=tk.TOP)
+        self.logging_frame = Logging(self._left_frame, bg=BG_COLOR)
+        self.logging_frame.pack(side=tk.TOP)
+
+        self._strategy_frame = StrategyEditor(self, self.binance, self.bitmex,
+                                              self._right_frame, bg=BG_COLOR)
+        self._strategy_frame.pack(side=tk.TOP)
+
+        self._trades_frame = TradesWatch(self._right_frame, bg=BG_COLOR)
+        self._trades_frame.pack(side=tk.TOP)
 
         self._update_ui()
 
@@ -39,11 +49,11 @@ class Root(tk.Tk):
         # Logs
         for log in self.bitmex.logs:
             if not log["displayed"]:
-                self._logging_frame.add_log(log["log"])
+                self.logging_frame.add_log(log["log"])
                 log["displayed"] = True
         for log in self.binance.logs:
             if not log["displayed"]:
-                self._logging_frame.add_log(log["log"])
+                self.logging_frame.add_log(log["log"])
                 log["displayed"] = True
 
         # Watchlist
