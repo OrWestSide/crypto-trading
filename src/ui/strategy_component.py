@@ -3,8 +3,11 @@ from tkinter import ttk
 
 from connectors.binance_futures import BinanceFuturesClient
 from connectors.bitmex import BitmexClient
-from ui.styling import BG_COLOR, GLOBAL_FONT, BG_COLOR_2, FG_COLOR, BOLD_FONT, BUTTON_DELETE_COLOR, \
-    BUTTON_GREEN
+from helpers.Strategies import Strategies
+from strategies.BreakoutStrategy import BreakoutStrategy
+from strategies.TechnicalStrategy import TechnicalStrategy
+from ui.styling import (BG_COLOR, GLOBAL_FONT, BG_COLOR_2, FG_COLOR, BOLD_FONT,
+                        BUTTON_DELETE_COLOR, BUTTON_GREEN)
 
 
 class StrategyEditor(tk.Frame):
@@ -48,7 +51,7 @@ class StrategyEditor(tk.Frame):
                 "code_name": "strategy_type",
                 "widget": tk.OptionMenu,
                 "data_type": str,
-                "values": ["Technical", "Breakout"],
+                "values": Strategies.values(),
                 "width": 10
             },
             {
@@ -110,7 +113,7 @@ class StrategyEditor(tk.Frame):
         ]
 
         self._extra_params = {
-            "Technical": [
+            Strategies.technical.value: [
                 {
                     "code_name": "ema_fast",
                     "name": "MACD Fast Length",
@@ -130,7 +133,7 @@ class StrategyEditor(tk.Frame):
                     "data_type": int
                 }
             ],
-            "Breakout": [
+            Strategies.breakout.value: [
                 {
                     "code_name": "min_volume",
                     "name": "Minimum volume",
@@ -191,8 +194,8 @@ class StrategyEditor(tk.Frame):
 
         self._additional_parameters[b_index] = dict()
 
-        for strat, pamams in self._extra_params.items():
-            for param in pamams:
+        for strategy, params in self._extra_params.items():
+            for param in params:
                 self._additional_parameters[b_index][param["code_name"]] = None
 
         self._body_index += 1
@@ -272,6 +275,29 @@ class StrategyEditor(tk.Frame):
         stop_loss = float(self.body_widgets['stop_loss'][b_index].get())
 
         if self.body_widgets["activation"][b_index].cget("text") == "OFF":
+            if strategy_selected == Strategies.technical.value:
+                new_strategy = TechnicalStrategy(
+                    contract=self._exchanges[exchange].contracts[symbol],
+                    exchange=exchange,
+                    timeframe=timeframe,
+                    balance_pct=balance_pct,
+                    take_profit=take_profit,
+                    stop_loss=stop_loss,
+                    other_params=self._additional_parameters[b_index]
+                )
+            elif strategy_selected == Strategies.breakout.value:
+                new_strategy = BreakoutStrategy(
+                    contract=self._exchanges[exchange].contracts[symbol],
+                    exchange=exchange,
+                    timeframe=timeframe,
+                    balance_pct=balance_pct,
+                    take_profit=take_profit,
+                    stop_loss=stop_loss,
+                    other_params=self._additional_parameters[b_index]
+                )
+            else:
+                return
+
             for param in self._base_params:
                 code_name = param["code_name"]
                 if code_name != "activation" and "_var" not in code_name:
