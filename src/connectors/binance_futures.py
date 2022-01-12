@@ -10,9 +10,9 @@ from urllib.parse import urlencode
 import requests
 import websocket
 
-from constants import (BINANCE_TESTNET_BASE_URL, BINANCE_BASE_URL, BINANCE_CONTRACTS_URL, BINANCE_HISTORIC_CANDLES_URL,
-                       BINANCE_BID_ASK_URL, BINANCE_ORDER_URL, BINANCE_ACCOUNT_URL, BINANCE_TESTNET_WS_URL,
-                       BINANCE_WS_URL)
+from constants import (BINANCE_TESTNET_BASE_URL, BINANCE_BASE_URL, BINANCE_CONTRACTS_URL,
+                       BINANCE_HISTORIC_CANDLES_URL, BINANCE_BID_ASK_URL, BINANCE_ORDER_URL,
+                       BINANCE_ACCOUNT_URL, BINANCE_TESTNET_WS_URL, BINANCE_WS_URL)
 from helpers.Exchange import Exchange
 from helpers.Methods import Methods
 from models.Balance import Balance
@@ -55,26 +55,33 @@ class BinanceFuturesClient:
         self.logs.append({"log": msg, "displayed": False})
 
     def _generate_signature(self, data: Dict) -> str:
-        return hmac.new(self._private_key.encode(), urlencode(data).encode(), hashlib.sha256).hexdigest()
+        return hmac.new(self._private_key.encode(), urlencode(data).encode(),
+                        hashlib.sha256).hexdigest()
 
     def _make_request(self, method: Methods, endpoint: str, data: Optional[Dict]):
         if method == Methods.GET:
             try:
-                response = requests.get(f"{self._base_url}{endpoint}", params=data, headers=self._headers)
+                response = requests.get(f"{self._base_url}{endpoint}", params=data,
+                                        headers=self._headers)
             except Exception as e:
-                logger.error("Connection error while making %s request to %s: %s", method, endpoint, e)
+                logger.error("Connection error while making %s request to %s: %s", method, endpoint,
+                             e)
                 return None
         elif method == Methods.POST:
             try:
-                response = requests.post(f"{self._base_url}{endpoint}", params=data, headers=self._headers)
+                response = requests.post(f"{self._base_url}{endpoint}", params=data,
+                                         headers=self._headers)
             except Exception as e:
-                logger.error("Connection error while making %s request to %s: %s", method, endpoint, e)
+                logger.error("Connection error while making %s request to %s: %s", method, endpoint,
+                             e)
                 return None
         elif method == Methods.DELETE:
             try:
-                response = requests.delete(f"{self._base_url}{endpoint}", params=data, headers=self._headers)
+                response = requests.delete(f"{self._base_url}{endpoint}", params=data,
+                                           headers=self._headers)
             except Exception as e:
-                logger.error("Connection error while making %s request to %s: %s", method, endpoint, e)
+                logger.error("Connection error while making %s request to %s: %s", method, endpoint,
+                             e)
                 return None
         else:
             raise ValueError(f"Accepted methods are {Methods.all()}")
@@ -119,7 +126,8 @@ class BinanceFuturesClient:
         ob_data = self._make_request(Methods.GET, BINANCE_BID_ASK_URL, data)
         if ob_data is not None:
             if contract.symbol not in self.prices:
-                self.prices[contract.symbol] = {"bid": float(ob_data["bidPrice"]), 'ask': float(ob_data["askPrice"])}
+                self.prices[contract.symbol] = {"bid": float(ob_data["bidPrice"]),
+                                                'ask': float(ob_data["askPrice"])}
             else:
                 self.prices[contract.symbol]['bid'] = float(ob_data["bidPrice"])
                 self.prices[contract.symbol]['ask'] = float(ob_data["askPrice"])
@@ -139,7 +147,8 @@ class BinanceFuturesClient:
 
         return balances
 
-    def place_order(self, contract: Contract, side: str, quantity: float, order_type: str, price=None,
+    def place_order(self, contract: Contract, side: str, quantity: float, order_type: str,
+                    price=None,
                     time_in_force=None) -> OrderStatus:
         data = dict()
         data["symbol"] = contract.symbol
@@ -186,7 +195,8 @@ class BinanceFuturesClient:
         return order_status
 
     def _start_ws(self):
-        self.ws = websocket.WebSocketApp(self._wss_url, on_open=self._on_open, on_close=self._on_close,
+        self.ws = websocket.WebSocketApp(self._wss_url, on_open=self._on_open,
+                                         on_close=self._on_close,
                                          on_error=self._on_error, on_message=self._on_message)
         while True:
             try:
@@ -226,7 +236,8 @@ class BinanceFuturesClient:
         try:
             self.ws.send(json.dumps(data))
         except Exception as e:
-            logger.error("Connection error while subscribing to %s %s updates: %s", len(contracts), channel, e)
+            logger.error("Connection error while subscribing to %s %s updates: %s", len(contracts),
+                         channel, e)
             return None
 
         self._ws_id += 1

@@ -1,0 +1,12 @@
+version: "3"
+
+services:
+  app:
+    build:
+      context: .
+    command: python3 main.py
+    env_file:
+      - .env
+    volumes:
+      - .:/opt/project
+      - /tmp/.X11-unix:/tmp/.X11-unix

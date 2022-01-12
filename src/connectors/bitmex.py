@@ -10,8 +10,9 @@ from urllib.parse import urlencode
 import requests
 import websocket
 
-from constants import (BITMEX_TESTNET_BASE_URL, BITMEX_BASE_URL, BITMEX_CONTRACTS_URL, BITMEX_TESTNET_WS_URL,
-                       BITMEX_WS_URL, BITMEX_BALANCES_URL, BITMEX_HISTORIC_CANDLES_URL, BITMEX_ORDER_URL)
+from constants import (BITMEX_TESTNET_BASE_URL, BITMEX_BASE_URL, BITMEX_CONTRACTS_URL,
+                       BITMEX_TESTNET_WS_URL, BITMEX_WS_URL, BITMEX_BALANCES_URL,
+                       BITMEX_HISTORIC_CANDLES_URL, BITMEX_ORDER_URL)
 from helpers.Exchange import Exchange
 from helpers.Methods import Methods
 from models.Balance import Balance
