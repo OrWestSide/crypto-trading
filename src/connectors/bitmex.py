@@ -4,9 +4,10 @@ import json
 import logging
 import threading
 import time
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Union
 from urllib.parse import urlencode
 
+import dateutil.parser
 import requests
 import websocket
 
@@ -19,6 +20,8 @@ from models.Balance import Balance
 from models.Candle import Candle
 from models.Contract import Contract
 from models.OrderStatus import OrderStatus
+from strategies.BreakoutStrategy import BreakoutStrategy
+from strategies.TechnicalStrategy import TechnicalStrategy
 
 logger = logging.getLogger()
 
@@ -41,6 +44,7 @@ class BitmexClient:
         self.balances = self.get_balances()
 
         self.prices = dict()
+        self.strategies: Dict[int, Union[TechnicalStrategy, BreakoutStrategy]] = dict()
 
         self.logs = []
 
@@ -186,6 +190,7 @@ class BitmexClient:
     def _on_open(self, ws):
         logger.info("Bitmex connection opened")
         self.subscribe_channel("instrument")
+        self.subscribe_channel("trade")
 
     def _on_close(self, ws):
         logger.warning("Bitmex Websocket connection closed")
@@ -206,8 +211,14 @@ class BitmexClient:
                     if 'askPrice' in d:
                         self.prices[symbol]['ask'] = float(d["askPrice"])
 
-                    if symbol == 'XBTUSD':
-                        self._add_logs(f"{symbol} {self.prices[symbol]['bid']}/{self.prices[symbol]['ask']}")
+            if data["table"] == "trade":
+                for d in data["data"]:
+                    symbol = d["symbol"]
+                    ts = int(dateutil.parser.isoparse(d["timestamp"]).timestamp() * 1000)
+
+                    for key, strategy in self.strategies.items():
+                        if strategy.contract.symbol == symbol:
+                            strategy.parse_trades(float(d['price']), float(d['size']), ts)
 
     def subscribe_channel(self, topic: str):
         data = {

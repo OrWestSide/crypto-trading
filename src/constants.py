@@ -32,3 +32,6 @@ BITMEX_CONTRACTS_URL = "/api/v1/instrument/active"
 BITMEX_BALANCES_URL = "/api/v1/user/margin"
 BITMEX_HISTORIC_CANDLES_URL = "/api/v1/trade/bucketed"
 BITMEX_ORDER_URL = "/api/v1/order"
+
+
+TF_EQUIV = {"1m": 60, "5m": 300, "15m": 900, "30m": 1800, "1h": 3600, "4h": 14400}

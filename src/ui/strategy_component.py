@@ -275,9 +275,10 @@ class StrategyEditor(tk.Frame):
         stop_loss = float(self.body_widgets['stop_loss'][b_index].get())
 
         if self.body_widgets["activation"][b_index].cget("text") == "OFF":
+            contract = self._exchanges[exchange].contracts[symbol]
             if strategy_selected == Strategies.technical.value:
                 new_strategy = TechnicalStrategy(
-                    contract=self._exchanges[exchange].contracts[symbol],
+                    contract=contract,
                     exchange=exchange,
                     timeframe=timeframe,
                     balance_pct=balance_pct,
@@ -287,7 +288,7 @@ class StrategyEditor(tk.Frame):
                 )
             elif strategy_selected == Strategies.breakout.value:
                 new_strategy = BreakoutStrategy(
-                    contract=self._exchanges[exchange].contracts[symbol],
+                    contract=contract,
                     exchange=exchange,
                     timeframe=timeframe,
                     balance_pct=balance_pct,
@@ -298,6 +299,16 @@ class StrategyEditor(tk.Frame):
             else:
                 return
 
+            new_strategy.candles = self._exchanges[exchange].get_historical_candles(
+                contract, timeframe
+            )
+            if len(new_strategy.candles) == 0:
+                self.root.logging_frame.add_log(f"No historical data retrieved for "
+                                                f"{contract.symbol}")
+                return
+
+            self._exchanges[exchange].strategies[b_index] = new_strategy
+
             for param in self._base_params:
                 code_name = param["code_name"]
                 if code_name != "activation" and "_var" not in code_name:
@@ -306,6 +317,8 @@ class StrategyEditor(tk.Frame):
             self.root.logging_frame.add_log(f"{strategy_selected} strategy on {symbol} / "
                                             f"{timeframe} started")
         else:
+            del self._exchanges[exchange].strategies[b_index]
+
             for param in self._base_params:
                 code_name = param["code_name"]
                 if code_name != "activation" and "_var" not in code_name:

@@ -4,7 +4,7 @@ import json
 import logging
 import threading
 import time
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Union
 from urllib.parse import urlencode
 
 import requests
@@ -19,6 +19,8 @@ from models.Balance import Balance
 from models.Candle import Candle
 from models.Contract import Contract
 from models.OrderStatus import OrderStatus
+from strategies.BreakoutStrategy import BreakoutStrategy
+from strategies.TechnicalStrategy import TechnicalStrategy
 
 logger = logging.getLogger()
 
@@ -41,6 +43,8 @@ class BinanceFuturesClient:
         self.balances = self.get_balances()
 
         self.prices = dict()
+        self.strategies: Dict[int, Union[TechnicalStrategy, BreakoutStrategy]] = dict()
+
         self.logs = []
         self._ws_id = 1
         self._ws = None
@@ -208,6 +212,7 @@ class BinanceFuturesClient:
     def _on_open(self, ws):
         logger.info("Binance connection opened")
         self.subscribe_channel(list(self.contracts.values()), "bookTicker")
+        self.subscribe_channel(list(self.contracts.values()), "aggTrade")
 
     def _on_close(self, ws):
         logger.warning("Binance Websocket connection closed")
@@ -225,6 +230,11 @@ class BinanceFuturesClient:
                 else:
                     self.prices[symbol]['bid'] = float(data["b"])
                     self.prices[symbol]['ask'] = float(data["a"])
+            elif data["e"] == "aggTrade":
+                symbol = data["s"]
+                for key, strategy in self.strategies.items():
+                    if strategy.contract.symbol == symbol:
+                        strategy.parse_trades(float(data['p']), float(data['q']), data['T'])
 
     def subscribe_channel(self, contracts: List[Contract], channel: str):
         data = {
