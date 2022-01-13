@@ -3,6 +3,7 @@ from tkinter import ttk
 
 from connectors.binance_futures import BinanceFuturesClient
 from connectors.bitmex import BitmexClient
+from helpers.Exchange import Exchange
 from helpers.Strategies import Strategies
 from strategies.BreakoutStrategy import BreakoutStrategy
 from strategies.TechnicalStrategy import TechnicalStrategy
@@ -114,6 +115,12 @@ class StrategyEditor(tk.Frame):
 
         self._extra_params = {
             Strategies.technical.value: [
+                {
+                    "code_name": "rsi_length",
+                    "name": "RSI Periods",
+                    "widget": tk.Entry,
+                    "data_type": int
+                },
                 {
                     "code_name": "ema_fast",
                     "name": "MACD Fast Length",
@@ -270,14 +277,16 @@ class StrategyEditor(tk.Frame):
         timeframe = self.body_widgets['timeframe_var'][b_index].get()
         exchange = self.body_widgets['contract_var'][b_index].get().split("_")[1]
 
+        contract = self._exchanges[exchange].contracts[symbol]
+
         balance_pct = float(self.body_widgets['balance_pct'][b_index].get())
         take_profit = float(self.body_widgets['take_profit'][b_index].get())
         stop_loss = float(self.body_widgets['stop_loss'][b_index].get())
 
         if self.body_widgets["activation"][b_index].cget("text") == "OFF":
-            contract = self._exchanges[exchange].contracts[symbol]
             if strategy_selected == Strategies.technical.value:
                 new_strategy = TechnicalStrategy(
+                    client=self._exchanges[exchange],
                     contract=contract,
                     exchange=exchange,
                     timeframe=timeframe,
@@ -288,6 +297,7 @@ class StrategyEditor(tk.Frame):
                 )
             elif strategy_selected == Strategies.breakout.value:
                 new_strategy = BreakoutStrategy(
+                    client=self._exchanges[exchange],
                     contract=contract,
                     exchange=exchange,
                     timeframe=timeframe,
@@ -306,6 +316,8 @@ class StrategyEditor(tk.Frame):
                 self.root.logging_frame.add_log(f"No historical data retrieved for "
                                                 f"{contract.symbol}")
                 return
+            if exchange == Exchange.binance.value:
+                self._exchanges[exchange].subscribe_channel([contract], "aggTrade")
 
             self._exchanges[exchange].strategies[b_index] = new_strategy
 

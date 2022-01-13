@@ -1,21 +1,32 @@
 import logging
-from typing import List
+import time
+from threading import Timer
+from typing import List, TYPE_CHECKING, Union
 
 from constants import TF_EQUIV
+from helpers.Strategies import Strategies
 from models.Candle import Candle
 from models.Contract import Contract
+from models.Trade import Trade
+
+if TYPE_CHECKING:
+    from connectors.bitmex import BitmexClient
+    from connectors.binance_futures import BinanceFuturesClient
 
 logger = logging.getLogger()
 
 
 class Strategy:
     def __init__(self,
+                 client: Union["BitmexClient", "BinanceFuturesClient"],
                  contract: Contract,
                  exchange: str,
                  timeframe: str,
                  balance_pct: float,
                  take_profit: float,
-                 stop_loss: float):
+                 stop_loss: float,
+                 strategy_name: Strategies):
+        self.client = client
         self.contract = contract
         self.exchange = exchange
         self.timeframe = timeframe
@@ -24,9 +35,24 @@ class Strategy:
         self.take_profit = take_profit
         self.stop_loss = stop_loss
 
+        self.strategy_name = strategy_name
+
+        self.ongoing_position = False
+
         self.candles: List[Candle] = []
+        self.trades: List[Trade] = []
+        self.logs = []
+
+    def _add_log(self, msg: str):
+        logger.info("%s", msg)
+        self.logs.append({"log": msg, "displayed": False})
 
     def parse_trades(self, price: float, size: float, timestamp: int) -> str:
+        timestamp_diff = int(time.time() * 1000) - timestamp
+        if timestamp_diff >= 2000:
+            logger.warning("%s %s: %s milliseconds of difference between the current time and the"
+                           " trade time", self.exchange, self.contract.symbol, timestamp_diff)
+
         last_candle = self.candles[-1]
 
         # Same candle
@@ -96,3 +122,59 @@ class Strategy:
             logger.info(f"{self.exchange} New candle for {self.contract.symbol} {self.timeframe}")
 
             return "new_candle"
+
+    def _open_position(self, signal_result: int):
+        trade_size = self.client.get_trade_size(
+            self.contract, self.candles[-1].close, self.balance_pct
+        )
+        if trade_size is None:
+            return
+
+        order_side = "buy" if signal_result == 1 else "sell"
+        position_side = "long" if signal_result == 1 else "short"
+
+        self._add_log(f"{position_side.capitalize()} signal on"
+                      f" {self.contract.symbol} {self.timeframe}")
+
+        order_status = self.client.place_order(self.contract, "MARKET", trade_size, order_side)
+        if order_status is not None:
+            self._add_log(f"{order_side.capitalize()} order placed on {self.exchange} | Status:"
+                          f" {order_status.status}")
+            self.ongoing_position = True
+
+            avg_fill_price = None
+            if order_status.status == "filled":
+                avg_fill_price = order_status.avg_price
+            else:
+                t = Timer(2.0, lambda: self._check_order_status(order_status.order_id))
+                t.start()
+
+            new_trade = Trade(
+                {
+                    "time": int(time.time() * 1000),
+                    "entry_price": avg_fill_price,
+                    "contract": self.contract,
+                    "strategy": self.strategy_name,
+                    "side": position_side,
+                    "status": "open",
+                    "pnl": 0,
+                    "quantity": trade_size,
+                    "entry_id": order_status.order_id
+                }
+            )
+            self.trades.append(new_trade)
+
+    def _check_order_status(self, order_id):
+        order_status = self.client.get_order_status(self.contract, order_id)
+        if order_status is not None:
+            logger.info("%s order status: %s", self.exchange, order_status.status)
+
+            if order_status.status == "filled":
+                for trade in self.trades:
+                    if trade.entry_id == order_id:
+                        trade.entry_price = order_status.avg_price
+                        break
+                return
+
+        t = Timer(2.0, lambda: self._check_order_status(order_id))
+        t.start()

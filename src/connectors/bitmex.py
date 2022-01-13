@@ -165,7 +165,7 @@ class BitmexClient:
             order_status = OrderStatus(order_status[0], Exchange.bitmex)
         return order_status
 
-    def get_order_status(self, order_id: str, contract: Contract) -> OrderStatus:
+    def get_order_status(self, contract: Contract, order_id: str) -> OrderStatus:
         data = dict()
         data["symbol"] = contract.symbol
         data["reverse"] = True
@@ -207,9 +207,11 @@ class BitmexClient:
                     if symbol not in self.prices:
                         self.prices[symbol] = {"bid": None, 'ask': None}
                     if 'bidPrice' in d:
-                        self.prices[symbol]['bid'] = float(d["bidPrice"])
+                        self.prices[symbol]['bid'] = float(d["bidPrice"]) if d["bidPrice"] \
+                                                                             is not None else None
                     if 'askPrice' in d:
-                        self.prices[symbol]['ask'] = float(d["askPrice"])
+                        self.prices[symbol]['ask'] = float(d["askPrice"]) if d["askPrice"] \
+                                                                             is not None else None
 
             if data["table"] == "trade":
                 for d in data["data"]:
@@ -218,7 +220,8 @@ class BitmexClient:
 
                     for key, strategy in self.strategies.items():
                         if strategy.contract.symbol == symbol:
-                            strategy.parse_trades(float(d['price']), float(d['size']), ts)
+                            res = strategy.parse_trades(float(d['price']), float(d['size']), ts)
+                            strategy.check_trade(res)
 
     def subscribe_channel(self, topic: str):
         data = {
@@ -231,3 +234,27 @@ class BitmexClient:
         except Exception as e:
             logger.error("Connection error while subscribing to %s updates: %s", topic, e)
             return None
+
+    def get_trade_size(self, contract: Contract, price: float, balance_pct: float):
+        balance = self.get_balances()
+        if balance is not None:
+            if 'XBt' in balance:
+                balance = balance['XBt'].wallet_balance
+            else:
+                return None
+        else:
+            return None
+
+        xbt_size = balance * balance_pct / 100
+
+        if contract.inverse:
+            contracts_number = xbt_size / (contract.multiplier / price)
+        elif contract.quanto:
+            contracts_number = xbt_size / (contract.multiplier * price)
+        else:
+            contracts_number = xbt_size / (contract.multiplier * price)
+
+        logger.info("Bitmex currenct XBt balance = %s, contracts number = %s",
+                    balance, contracts_number)
+
+        return int(contracts_number)

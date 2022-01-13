@@ -1,6 +1,7 @@
 from typing import Dict
 
 from helpers.Exchange import Exchange
+from models.Balance import BITMEX_MULTIPLIER
 
 
 def tick_to_decimals(tick_size: float) -> int:
@@ -34,3 +35,10 @@ class Contract:
             self.lot_size = contract_info["lotSize"]
             self.price_decimals = tick_to_decimals(self.tick_size)
             self.quantity_decimals = tick_to_decimals(self.lot_size)
+
+            self.quanto = contract_info["isQuanto"]
+            self.inverse = contract_info["isInverse"]
+
+            self.multiplier = contract_info["multiplier"] * BITMEX_MULTIPLIER
+            if self.inverse:
+                self.multiplier *= 1
