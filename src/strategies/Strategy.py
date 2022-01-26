@@ -17,15 +17,17 @@ logger = logging.getLogger()
 
 
 class Strategy:
-    def __init__(self,
-                 client: Union["BitmexClient", "BinanceFuturesClient"],
-                 contract: Contract,
-                 exchange: str,
-                 timeframe: str,
-                 balance_pct: float,
-                 take_profit: float,
-                 stop_loss: float,
-                 strategy_name: Strategies):
+    def __init__(
+        self,
+        client: Union["BitmexClient", "BinanceFuturesClient"],
+        contract: Contract,
+        exchange: str,
+        timeframe: str,
+        balance_pct: float,
+        take_profit: float,
+        stop_loss: float,
+        strategy_name: Strategies,
+    ):
         self.client = client
         self.contract = contract
         self.exchange = exchange
@@ -50,8 +52,13 @@ class Strategy:
     def parse_trades(self, price: float, size: float, timestamp: int) -> str:
         timestamp_diff = int(time.time() * 1000) - timestamp
         if timestamp_diff >= 2000:
-            logger.warning("%s %s: %s milliseconds of difference between the current time and the"
-                           " trade time", self.exchange, self.contract.symbol, timestamp_diff)
+            logger.warning(
+                "%s %s: %s milliseconds of difference between the current time and the"
+                " trade time",
+                self.exchange,
+                self.contract.symbol,
+                timestamp_diff,
+            )
 
         last_candle = self.candles[-1]
 
@@ -69,10 +76,14 @@ class Strategy:
 
         # Missing candles
         elif timestamp >= last_candle.timestamp + 2 * self.tf_equiv:
-            missing_candles = int((timestamp - last_candle.timestamp) / self.tf_equiv) - 1
-            logger.info(f"{self.exchange} missing {missing_candles} candles for "
-                        f"{self.contract.symbol} {self.timeframe} "
-                        f"({timestamp} {last_candle.timestamp})")
+            missing_candles = (
+                int((timestamp - last_candle.timestamp) / self.tf_equiv) - 1
+            )
+            logger.info(
+                f"{self.exchange} missing {missing_candles} candles for "
+                f"{self.contract.symbol} {self.timeframe} "
+                f"({timestamp} {last_candle.timestamp})"
+            )
 
             for missing in range(missing_candles):
                 new_ts = last_candle.timestamp + self.tf_equiv
@@ -82,7 +93,7 @@ class Strategy:
                     "high": last_candle.close,
                     "low": last_candle.close,
                     "close": last_candle.close,
-                    "volume": 0
+                    "volume": 0,
                 }
                 new_candle = Candle(candle_info, self.timeframe, "parse_trade")
                 self.candles.append(new_candle)
@@ -96,12 +107,14 @@ class Strategy:
                 "high": price,
                 "low": price,
                 "close": price,
-                "volume": size
+                "volume": size,
             }
             new_candle = Candle(candle_info, self.timeframe, "parse_trade")
             self.candles.append(new_candle)
 
-            logger.info(f"{self.exchange} New candle for {self.contract.symbol} {self.timeframe}")
+            logger.info(
+                f"{self.exchange} New candle for {self.contract.symbol} {self.timeframe}"
+            )
 
             return "new_candle"
 
@@ -114,12 +127,14 @@ class Strategy:
                 "high": price,
                 "low": price,
                 "close": price,
-                "volume": size
+                "volume": size,
             }
             new_candle = Candle(candle_info, self.timeframe, "parse_trade")
             self.candles.append(new_candle)
 
-            logger.info(f"{self.exchange} New candle for {self.contract.symbol} {self.timeframe}")
+            logger.info(
+                f"{self.exchange} New candle for {self.contract.symbol} {self.timeframe}"
+            )
 
             return "new_candle"
 
@@ -133,20 +148,29 @@ class Strategy:
         order_side = "buy" if signal_result == 1 else "sell"
         position_side = "long" if signal_result == 1 else "short"
 
-        self._add_log(f"{position_side.capitalize()} signal on"
-                      f" {self.contract.symbol} {self.timeframe}")
+        self._add_log(
+            f"{position_side.capitalize()} signal on"
+            f" {self.contract.symbol} {self.timeframe}"
+        )
 
-        order_status = self.client.place_order(self.contract, "MARKET", trade_size, order_side)
+        order_status = self.client.place_order(
+            self.contract, "MARKET", trade_size, order_side
+        )
         if order_status is not None:
-            self._add_log(f"{order_side.capitalize()} order placed on {self.exchange} | Status:"
-                          f" {order_status.status}")
+            self._add_log(
+                f"{order_side.capitalize()} order placed on {self.exchange} | Status:"
+                f" {order_status.status}"
+            )
             self.ongoing_position = True
 
             avg_fill_price = None
             if order_status.status == "filled":
                 avg_fill_price = order_status.avg_price
             else:
-                t = Timer(2.0, lambda: self._check_order_status(order_status.order_id))
+                t = Timer(
+                    2.0,
+                    lambda: self._check_order_status(order_status.order_id),
+                )
                 t.start()
 
             new_trade = Trade(
@@ -159,7 +183,7 @@ class Strategy:
                     "status": "open",
                     "pnl": 0,
                     "quantity": trade_size,
-                    "entry_id": order_status.order_id
+                    "entry_id": order_status.order_id,
                 }
             )
             self.trades.append(new_trade)
@@ -167,7 +191,9 @@ class Strategy:
     def _check_order_status(self, order_id):
         order_status = self.client.get_order_status(self.contract, order_id)
         if order_status is not None:
-            logger.info("%s order status: %s", self.exchange, order_status.status)
+            logger.info(
+                "%s order status: %s", self.exchange, order_status.status
+            )
 
             if order_status.status == "filled":
                 for trade in self.trades:

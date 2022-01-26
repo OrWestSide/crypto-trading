@@ -8,17 +8,27 @@ from strategies.Strategy import Strategy
 
 
 class TechnicalStrategy(Strategy):
-    def __init__(self,
-                 client,
-                 contract: Contract,
-                 exchange: str,
-                 timeframe: str,
-                 balance_pct: float,
-                 take_profit: float,
-                 stop_loss: float,
-                 other_params: Dict):
-        super().__init__(client, contract, exchange, timeframe, balance_pct, take_profit,
-                         stop_loss, Strategies.technical)
+    def __init__(
+        self,
+        client,
+        contract: Contract,
+        exchange: str,
+        timeframe: str,
+        balance_pct: float,
+        take_profit: float,
+        stop_loss: float,
+        other_params: Dict,
+    ):
+        super().__init__(
+            client,
+            contract,
+            exchange,
+            timeframe,
+            balance_pct,
+            take_profit,
+            stop_loss,
+            Strategies.technical,
+        )
 
         self._ema_fast = other_params["ema_fast"]
         self._ema_slow = other_params["ema_slow"]
@@ -36,8 +46,14 @@ class TechnicalStrategy(Strategy):
         up[up < 0] = 0
         down[down > 0] = 0
 
-        avg_gain = up.ewm(com=(self._rsi_length - 1), min_periods=self._rsi_length).mean()
-        avg_loss = down.abs().ewm(com=(self._rsi_length - 1), min_periods=self._rsi_length).mean()
+        avg_gain = up.ewm(
+            com=(self._rsi_length - 1), min_periods=self._rsi_length
+        ).mean()
+        avg_loss = (
+            down.abs()
+            .ewm(com=(self._rsi_length - 1), min_periods=self._rsi_length)
+            .mean()
+        )
 
         rs = avg_gain / avg_loss
         rsi = 100 - 100 / (1 + rs)
@@ -73,6 +89,3 @@ class TechnicalStrategy(Strategy):
             signal_result = self._check_signal()
             if signal_result in [-1, 1]:
                 self._open_position(signal_result)
-
-
-

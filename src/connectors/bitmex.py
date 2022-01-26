@@ -11,9 +11,16 @@ import dateutil.parser
 import requests
 import websocket
 
-from constants import (BITMEX_TESTNET_BASE_URL, BITMEX_BASE_URL, BITMEX_CONTRACTS_URL,
-                       BITMEX_TESTNET_WS_URL, BITMEX_WS_URL, BITMEX_BALANCES_URL,
-                       BITMEX_HISTORIC_CANDLES_URL, BITMEX_ORDER_URL)
+from constants import (
+    BITMEX_TESTNET_BASE_URL,
+    BITMEX_BASE_URL,
+    BITMEX_CONTRACTS_URL,
+    BITMEX_TESTNET_WS_URL,
+    BITMEX_WS_URL,
+    BITMEX_BALANCES_URL,
+    BITMEX_HISTORIC_CANDLES_URL,
+    BITMEX_ORDER_URL,
+)
 from helpers.Exchange import Exchange
 from helpers.Methods import Methods
 from models.Balance import Balance
@@ -44,7 +51,9 @@ class BitmexClient:
         self.balances = self.get_balances()
 
         self.prices = dict()
-        self.strategies: Dict[int, Union[TechnicalStrategy, BreakoutStrategy]] = dict()
+        self.strategies: Dict[
+            int, Union[TechnicalStrategy, BreakoutStrategy]
+        ] = dict()
 
         self.logs = []
 
@@ -57,36 +66,68 @@ class BitmexClient:
         logger.info("%s", msg)
         self.logs.append({"log": msg, "displayed": False})
 
-    def _generate_signature(self, method: Methods, endpoint: str, expires: str, data: Dict) -> str:
-        message = f"{method.value}{endpoint}?{urlencode(data)}{expires}" if len(data) > 0 \
+    def _generate_signature(
+        self, method: Methods, endpoint: str, expires: str, data: Dict
+    ) -> str:
+        message = (
+            f"{method.value}{endpoint}?{urlencode(data)}{expires}"
+            if len(data) > 0
             else f"{method.value}{endpoint}{expires}"
-        return hmac.new(self._private_key.encode(), message.encode(), hashlib.sha256).hexdigest()
+        )
+        return hmac.new(
+            self._private_key.encode(), message.encode(), hashlib.sha256
+        ).hexdigest()
 
-    def _make_request(self, method: Methods, endpoint: str, data: Optional[Dict]):
+    def _make_request(
+        self, method: Methods, endpoint: str, data: Optional[Dict]
+    ):
         headers = dict()
 
         expires = str(int(time.time()) + 5)
-        headers['api-expires'] = expires
-        headers['api-key'] = self._public_key
-        headers['api-signature'] = self._generate_signature(method, endpoint, expires, data)
+        headers["api-expires"] = expires
+        headers["api-key"] = self._public_key
+        headers["api-signature"] = self._generate_signature(
+            method, endpoint, expires, data
+        )
 
         if method == Methods.GET:
             try:
-                response = requests.get(f"{self._base_url}{endpoint}", params=data, headers=headers)
+                response = requests.get(
+                    f"{self._base_url}{endpoint}", params=data, headers=headers
+                )
             except Exception as e:
-                logger.error("Connection error while making %s request to %s: %s", method, endpoint, e)
+                logger.error(
+                    "Connection error while making %s request to %s: %s",
+                    method,
+                    endpoint,
+                    e,
+                )
                 return None
         elif method == Methods.POST:
             try:
-                response = requests.post(f"{self._base_url}{endpoint}", params=data, headers=headers)
+                response = requests.post(
+                    f"{self._base_url}{endpoint}", params=data, headers=headers
+                )
             except Exception as e:
-                logger.error("Connection error while making %s request to %s: %s", method, endpoint, e)
+                logger.error(
+                    "Connection error while making %s request to %s: %s",
+                    method,
+                    endpoint,
+                    e,
+                )
                 return None
         elif method == Methods.DELETE:
             try:
-                response = requests.delete(f"{self._base_url}{endpoint}", params=data, headers=headers)
+                response = requests.delete(
+                    f"{self._base_url}{endpoint}", params=data, headers=headers
+                )
             except Exception as e:
-                logger.error("Connection error while making %s request to %s: %s", method, endpoint, e)
+                logger.error(
+                    "Connection error while making %s request to %s: %s",
+                    method,
+                    endpoint,
+                    e,
+                )
                 return None
         else:
             raise ValueError(f"Accepted methods are {Methods.all()}")
@@ -94,17 +135,23 @@ class BitmexClient:
         if response.status_code == 200:
             return response.json()
         else:
-            logger.error(f"Error while making {method} request to {endpoint}: "
-                         f"{response.json()} (error code {response.status_code})")
+            logger.error(
+                f"Error while making {method} request to {endpoint}: "
+                f"{response.json()} (error code {response.status_code})"
+            )
             return None
 
     def get_contracts(self) -> Dict[str, Contract]:
-        instruments = self._make_request(Methods.GET, BITMEX_CONTRACTS_URL, dict())
+        instruments = self._make_request(
+            Methods.GET, BITMEX_CONTRACTS_URL, dict()
+        )
 
         contracts = dict()
         if instruments is not None:
             for instrument in instruments:
-                contracts[instrument["symbol"]] = Contract(instrument, Exchange.bitmex)
+                contracts[instrument["symbol"]] = Contract(
+                    instrument, Exchange.bitmex
+                )
 
         return contracts
 
@@ -112,7 +159,9 @@ class BitmexClient:
         data = dict()
         data["currency"] = "all"
 
-        margin_data = self._make_request(Methods.GET, BITMEX_BALANCES_URL, data)
+        margin_data = self._make_request(
+            Methods.GET, BITMEX_BALANCES_URL, data
+        )
 
         balances = dict()
         if margin_data is not None:
@@ -120,7 +169,9 @@ class BitmexClient:
                 balances[a["currency"]] = Balance(a, Exchange.bitmex)
         return balances
 
-    def get_historical_candles(self, contract: Contract, timeframe: str) -> List[Candle]:
+    def get_historical_candles(
+        self, contract: Contract, timeframe: str
+    ) -> List[Candle]:
         data = dict()
         data["symbol"] = contract.symbol
         data["partial"] = True
@@ -128,7 +179,9 @@ class BitmexClient:
         data["count"] = 500
         data["reverse"] = True
 
-        raw_candles = self._make_request(Methods.GET, BITMEX_HISTORIC_CANDLES_URL, data)
+        raw_candles = self._make_request(
+            Methods.GET, BITMEX_HISTORIC_CANDLES_URL, data
+        )
 
         candles = []
         if raw_candles is not None:
@@ -136,16 +189,27 @@ class BitmexClient:
                 candles.append(Candle(c, timeframe, Exchange.bitmex))
         return candles
 
-    def place_order(self, contract: Contract, order_type: str, quantity: int, side: str, price=None,
-                    time_in_force=None) -> OrderStatus:
+    def place_order(
+        self,
+        contract: Contract,
+        order_type: str,
+        quantity: int,
+        side: str,
+        price=None,
+        time_in_force=None,
+    ) -> OrderStatus:
         data = dict()
 
         data["symbol"] = contract.symbol
         data["side"] = side.capitalize()
-        data["orderQty"] = round(quantity / contract.lot_size) * contract.lot_size
+        data["orderQty"] = (
+            round(quantity / contract.lot_size) * contract.lot_size
+        )
         data["ordrType"] = order_type.capitalize()
         if price is not None:
-            data["price"] = round(round(price / contract.tick_size) * contract.tick_size, 8)
+            data["price"] = round(
+                round(price / contract.tick_size) * contract.tick_size, 8
+            )
         if time_in_force is not None:
             data["timeInForce"] = time_in_force
 
@@ -159,13 +223,17 @@ class BitmexClient:
         data = dict()
         data["orderID"] = order_id
 
-        order_status = self._make_request(Methods.DELETE, BITMEX_ORDER_URL, data)
+        order_status = self._make_request(
+            Methods.DELETE, BITMEX_ORDER_URL, data
+        )
 
         if order_status is not None:
             order_status = OrderStatus(order_status[0], Exchange.bitmex)
         return order_status
 
-    def get_order_status(self, contract: Contract, order_id: str) -> OrderStatus:
+    def get_order_status(
+        self, contract: Contract, order_id: str
+    ) -> OrderStatus:
         data = dict()
         data["symbol"] = contract.symbol
         data["reverse"] = True
@@ -178,8 +246,13 @@ class BitmexClient:
                     return OrderStatus(order_status[0], Exchange.bitmex)
 
     def _start_ws(self):
-        self._ws = websocket.WebSocketApp(self._wss_url, on_open=self._on_open, on_close=self._on_close,
-                                          on_error=self._on_error, on_message=self._on_message)
+        self._ws = websocket.WebSocketApp(
+            self._wss_url,
+            on_open=self._on_open,
+            on_close=self._on_close,
+            on_error=self._on_error,
+            on_message=self._on_message,
+        )
         while True:
             try:
                 self._ws.run_forever()
@@ -205,22 +278,33 @@ class BitmexClient:
                 for d in data["data"]:
                     symbol = d["symbol"]
                     if symbol not in self.prices:
-                        self.prices[symbol] = {"bid": None, 'ask': None}
-                    if 'bidPrice' in d:
-                        self.prices[symbol]['bid'] = float(d["bidPrice"]) if d["bidPrice"] \
-                                                                             is not None else None
-                    if 'askPrice' in d:
-                        self.prices[symbol]['ask'] = float(d["askPrice"]) if d["askPrice"] \
-                                                                             is not None else None
+                        self.prices[symbol] = {"bid": None, "ask": None}
+                    if "bidPrice" in d:
+                        self.prices[symbol]["bid"] = (
+                            float(d["bidPrice"])
+                            if d["bidPrice"] is not None
+                            else None
+                        )
+                    if "askPrice" in d:
+                        self.prices[symbol]["ask"] = (
+                            float(d["askPrice"])
+                            if d["askPrice"] is not None
+                            else None
+                        )
 
             if data["table"] == "trade":
                 for d in data["data"]:
                     symbol = d["symbol"]
-                    ts = int(dateutil.parser.isoparse(d["timestamp"]).timestamp() * 1000)
+                    ts = int(
+                        dateutil.parser.isoparse(d["timestamp"]).timestamp()
+                        * 1000
+                    )
 
                     for key, strategy in self.strategies.items():
                         if strategy.contract.symbol == symbol:
-                            res = strategy.parse_trades(float(d['price']), float(d['size']), ts)
+                            res = strategy.parse_trades(
+                                float(d["price"]), float(d["size"]), ts
+                            )
                             strategy.check_trade(res)
 
     def subscribe_channel(self, topic: str):
@@ -232,14 +316,20 @@ class BitmexClient:
         try:
             self._ws.send(json.dumps(data))
         except Exception as e:
-            logger.error("Connection error while subscribing to %s updates: %s", topic, e)
+            logger.error(
+                "Connection error while subscribing to %s updates: %s",
+                topic,
+                e,
+            )
             return None
 
-    def get_trade_size(self, contract: Contract, price: float, balance_pct: float):
+    def get_trade_size(
+        self, contract: Contract, price: float, balance_pct: float
+    ):
         balance = self.get_balances()
         if balance is not None:
-            if 'XBt' in balance:
-                balance = balance['XBt'].wallet_balance
+            if "XBt" in balance:
+                balance = balance["XBt"].wallet_balance
             else:
                 return None
         else:
@@ -254,7 +344,10 @@ class BitmexClient:
         else:
             contracts_number = xbt_size / (contract.multiplier * price)
 
-        logger.info("Bitmex currenct XBt balance = %s, contracts number = %s",
-                    balance, contracts_number)
+        logger.info(
+            "Bitmex currenct XBt balance = %s, contracts number = %s",
+            balance,
+            contracts_number,
+        )
 
         return int(contracts_number)
