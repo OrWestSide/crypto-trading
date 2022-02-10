@@ -39,7 +39,7 @@ class Strategy:
 
         self.strategy_name = strategy_name
 
-        self.ongoing_position = False
+        self.open_position = False
 
         self.candles: List[Candle] = []
         self.trades: List[Trade] = []
@@ -53,8 +53,8 @@ class Strategy:
         timestamp_diff = int(time.time() * 1000) - timestamp
         if timestamp_diff >= 2000:
             logger.warning(
-                "%s %s: %s milliseconds of difference between the current time and the"
-                " trade time",
+                "%s %s: %s milliseconds of difference between the current"
+                " time and the trade time",
                 self.exchange,
                 self.contract.symbol,
                 timestamp_diff,
@@ -113,7 +113,8 @@ class Strategy:
             self.candles.append(new_candle)
 
             logger.info(
-                f"{self.exchange} New candle for {self.contract.symbol} {self.timeframe}"
+                f"{self.exchange} New candle for {self.contract.symbol}"
+                f" {self.timeframe}"
             )
 
             return "new_candle"
@@ -133,7 +134,8 @@ class Strategy:
             self.candles.append(new_candle)
 
             logger.info(
-                f"{self.exchange} New candle for {self.contract.symbol} {self.timeframe}"
+                f"{self.exchange} New candle for {self.contract.symbol} "
+                f"{self.timeframe}"
             )
 
             return "new_candle"
@@ -158,8 +160,8 @@ class Strategy:
         )
         if order_status is not None:
             self._add_log(
-                f"{order_side.capitalize()} order placed on {self.exchange} | Status:"
-                f" {order_status.status}"
+                f"{order_side.capitalize()} order placed on {self.exchange}"
+                f" | Status: {order_status.status}"
             )
             self.ongoing_position = True
 

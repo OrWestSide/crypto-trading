@@ -85,7 +85,7 @@ class TechnicalStrategy(Strategy):
             return 0
 
     def check_trade(self, tick_type: str):
-        if tick_type == "new_candle" and not self.ongoing_position:
+        if tick_type == "new_candle" and not self.open_position:
             signal_result = self._check_signal()
             if signal_result in [-1, 1]:
                 self._open_position(signal_result)

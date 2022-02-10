@@ -383,7 +383,7 @@ class StrategyEditor(tk.Frame):
             ].get_historical_candles(contract, timeframe)
             if len(new_strategy.candles) == 0:
                 self.root.logging_frame.add_log(
-                    f"No historical data retrieved for " f"{contract.symbol}"
+                    f"No historical data retrieved for {contract.symbol}"
                 )
                 return
             if exchange == Exchange.binance.value:
