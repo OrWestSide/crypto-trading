@@ -3,6 +3,7 @@ from typing import Dict
 
 from helpers.Exchange import Exchange
 from models.Contract import Contract
+from ui.autocomplete_widget import Autocomplete
 from ui.styling import (
     BG_COLOR,
     FG_COLOR,
@@ -41,7 +42,8 @@ class Watchlist(tk.Frame):
             font=BOLD_FONT,
         )
         self._binance_label.grid(row=0, column=0)
-        self._binance_entry = tk.Entry(
+        self._binance_entry = Autocomplete(
+            self.binance_symbols,
             self._commands_frame,
             fg=FG_COLOR,
             justify=tk.CENTER,
@@ -59,7 +61,8 @@ class Watchlist(tk.Frame):
             font=BOLD_FONT,
         )
         self._bitmex_label.grid(row=0, column=1)
-        self._bitmex_entry = tk.Entry(
+        self._bitmex_entry = Autocomplete(
+            self.bitmex_symbols,
             self._commands_frame,
             fg=FG_COLOR,
             justify=tk.CENTER,
