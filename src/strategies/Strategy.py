@@ -53,8 +53,7 @@ class Strategy:
         timestamp_diff = int(time.time() * 1000) - timestamp
         if timestamp_diff >= 2000:
             logger.warning(
-                "%s %s: %s milliseconds of difference between the current"
-                " time and the trade time",
+                "%s %s: %s milliseconds of difference between the current" " time and the trade time",
                 self.exchange,
                 self.contract.symbol,
                 timestamp_diff,
@@ -72,13 +71,16 @@ class Strategy:
             elif price < last_candle.low:
                 last_candle.low = price
 
+            # Check Take profit / Stop loss
+            for trade in self.trades:
+                if trade.status == "open" and trade.entry_price is not None:
+                    self._check_tp_sl(trade)
+
             return "same_candle"
 
         # Missing candles
         elif timestamp >= last_candle.timestamp + 2 * self.tf_equiv:
-            missing_candles = (
-                int((timestamp - last_candle.timestamp) / self.tf_equiv) - 1
-            )
+            missing_candles = int((timestamp - last_candle.timestamp) / self.tf_equiv) - 1
             logger.info(
                 f"{self.exchange} missing {missing_candles} candles for "
                 f"{self.contract.symbol} {self.timeframe} "
@@ -112,10 +114,7 @@ class Strategy:
             new_candle = Candle(candle_info, self.timeframe, "parse_trade")
             self.candles.append(new_candle)
 
-            logger.info(
-                f"{self.exchange} New candle for {self.contract.symbol}"
-                f" {self.timeframe}"
-            )
+            logger.info(f"{self.exchange} New candle for {self.contract.symbol}" f" {self.timeframe}")
 
             return "new_candle"
 
@@ -133,35 +132,24 @@ class Strategy:
             new_candle = Candle(candle_info, self.timeframe, "parse_trade")
             self.candles.append(new_candle)
 
-            logger.info(
-                f"{self.exchange} New candle for {self.contract.symbol} "
-                f"{self.timeframe}"
-            )
+            logger.info(f"{self.exchange} New candle for {self.contract.symbol} " f"{self.timeframe}")
 
             return "new_candle"
 
     def _open_position(self, signal_result: int):
-        trade_size = self.client.get_trade_size(
-            self.contract, self.candles[-1].close, self.balance_pct
-        )
+        trade_size = self.client.get_trade_size(self.contract, self.candles[-1].close, self.balance_pct)
         if trade_size is None:
             return
 
         order_side = "buy" if signal_result == 1 else "sell"
         position_side = "long" if signal_result == 1 else "short"
 
-        self._add_log(
-            f"{position_side.capitalize()} signal on"
-            f" {self.contract.symbol} {self.timeframe}"
-        )
+        self._add_log(f"{position_side.capitalize()} signal on" f" {self.contract.symbol} {self.timeframe}")
 
-        order_status = self.client.place_order(
-            self.contract, "MARKET", trade_size, order_side
-        )
+        order_status = self.client.place_order(self.contract, "MARKET", trade_size, order_side)
         if order_status is not None:
             self._add_log(
-                f"{order_side.capitalize()} order placed on {self.exchange}"
-                f" | Status: {order_status.status}"
+                f"{order_side.capitalize()} order placed on {self.exchange}" f" | Status: {order_status.status}"
             )
             self.ongoing_position = True
 
@@ -193,9 +181,7 @@ class Strategy:
     def _check_order_status(self, order_id):
         order_status = self.client.get_order_status(self.contract, order_id)
         if order_status is not None:
-            logger.info(
-                "%s order status: %s", self.exchange, order_status.status
-            )
+            logger.info("%s order status: %s", self.exchange, order_status.status)
 
             if order_status.status == "filled":
                 for trade in self.trades:
@@ -206,3 +192,37 @@ class Strategy:
 
         t = Timer(2.0, lambda: self._check_order_status(order_id))
         t.start()
+
+    def _check_tp_sl(self, trade: Trade):
+        tp_triggered = False
+        sl_triggered = False
+
+        price = self.candles[-1].close
+
+        if trade.side == "long":
+            if self.stop_loss is not None:
+                if price <= trade.entry_price * (1 - self.stop_loss / 100):
+                    sl_triggered = True
+            if self.take_profit is not None:
+                if price >= trade.entry_price * (1 - self.take_profit / 100):
+                    tp_triggered = True
+        elif trade.side == "short":
+            if self.stop_loss is not None:
+                if price >= trade.entry_price * (1 - self.stop_loss / 100):
+                    sl_triggered = True
+            if self.take_profit is not None:
+                if price <= trade.entry_price * (1 - self.take_profit / 100):
+                    tp_triggered = True
+
+        if tp_triggered or sl_triggered:
+            self._add_log(
+                f"{'Stop loss' if sl_triggered else 'Take profit'} for {self.contract.symbol} {self.timeframe}"
+            )
+
+            order_side = "SELL" if trade.side == "long" else "BUY"
+            order_status = self.client.place_order(self.contract, "MARKET", trade.quantity, order_side)
+
+            if order_status is not None:
+                self._add_log(f"Exit order on {self.contract.symbol} {self.timeframe} placed successfully")
+                trade.status = "closed"
+                self.ongoing_position = False

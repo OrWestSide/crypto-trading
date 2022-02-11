@@ -34,15 +34,9 @@ class BreakoutStrategy(Strategy):
         self._min_volume = other_params["min_volume"]
 
     def _check_signal(self) -> int:
-        if (
-            self.candles[-1].close > self.candles[-2].high
-            and self.candles[-1].volume > self._min_volume
-        ):
+        if self.candles[-1].close > self.candles[-2].high and self.candles[-1].volume > self._min_volume:
             return 1
-        elif (
-            self.candles[-1].close < self.candles[-2].low
-            and self.candles[-1].volume > self._min_volume
-        ):
+        elif self.candles[-1].close < self.candles[-2].low and self.candles[-1].volume > self._min_volume:
             return -1
         else:
             return 0

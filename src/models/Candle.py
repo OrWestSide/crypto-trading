@@ -19,9 +19,7 @@ class Candle:
             self.volume = float(candle_info[5])
         elif exchange == Exchange.bitmex:
             self.timestamp = dateutil.parser.isoparse(candle_info["timestamp"])
-            self.timestamp = self.timestamp - datetime.timedelta(
-                minutes=BITMEX_TF_MINUTES[timeframe]
-            )
+            self.timestamp = self.timestamp - datetime.timedelta(minutes=BITMEX_TF_MINUTES[timeframe])
             self.timestamp = int(self.timestamp.timestamp() * 1000)
             self.open = candle_info["open"]
             self.high = candle_info["high"]

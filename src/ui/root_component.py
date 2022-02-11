@@ -41,9 +41,7 @@ class Root(tk.Tk):
         self.logging_frame = Logging(self._left_frame, bg=BG_COLOR)
         self.logging_frame.pack(side=tk.TOP)
 
-        self._strategy_frame = StrategyEditor(
-            self, self.binance, self.bitmex, self._right_frame, bg=BG_COLOR
-        )
+        self._strategy_frame = StrategyEditor(self, self.binance, self.bitmex, self._right_frame, bg=BG_COLOR)
         self._strategy_frame.pack(side=tk.TOP)
 
         self._trades_frame = TradesWatch(self._right_frame, bg=BG_COLOR)
@@ -90,20 +88,14 @@ class Root(tk.Tk):
         # Watchlist
         try:
             for k, v in self._watchlist_frame.body_widgets["symbol"].items():
-                symbol = self._watchlist_frame.body_widgets["symbol"][k].cget(
-                    "text"
-                )
-                exchange = self._watchlist_frame.body_widgets["exchange"][
-                    k
-                ].cget("text")
+                symbol = self._watchlist_frame.body_widgets["symbol"][k].cget("text")
+                exchange = self._watchlist_frame.body_widgets["exchange"][k].cget("text")
 
                 if exchange == "Binance":
                     if symbol not in self.binance.contracts:
                         continue
                     if symbol not in self.binance.prices:
-                        self.binance.get_bid_ask(
-                            self.binance.contracts[symbol]
-                        )
+                        self.binance.get_bid_ask(self.binance.contracts[symbol])
                         continue
 
                     precision = self.binance.contracts["symbol"].price_decimals
@@ -113,9 +105,7 @@ class Root(tk.Tk):
                     if symbol not in self.bitmex.contracts:
                         continue
                     if symbol not in self.bitmex.prices:
-                        self.binance.get_bid_ask(
-                            self.binance.contracts[symbol]
-                        )
+                        self.binance.get_bid_ask(self.binance.contracts[symbol])
                         continue
 
                     precision = self.bitmex.contracts["symbol"].price_decimals
@@ -125,22 +115,12 @@ class Root(tk.Tk):
                     continue
 
                 if prices["bid"] is not None:
-                    price_str = "{0:.{prec}f}".format(
-                        prices["bid"], prec=precision
-                    )
-                    self._watchlist_frame.body_widgets["bid_var"][k].set(
-                        price_str
-                    )
+                    price_str = "{0:.{prec}f}".format(prices["bid"], prec=precision)
+                    self._watchlist_frame.body_widgets["bid_var"][k].set(price_str)
                 if prices["ask"] is not None:
-                    price_str = "{0:.{prec}f}".format(
-                        prices["ask"], prec=precision
-                    )
-                    self._watchlist_frame.body_widgets["ask_var"][k].set(
-                        price_str
-                    )
+                    price_str = "{0:.{prec}f}".format(prices["ask"], prec=precision)
+                    self._watchlist_frame.body_widgets["ask_var"][k].set(price_str)
         except RuntimeError as e:
-            logger.error(
-                "Error while looping through the watchlist dictionary: %s", e
-            )
+            logger.error("Error while looping through the watchlist dictionary: %s", e)
 
         self.after(1500, self._update_ui)

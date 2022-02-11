@@ -46,14 +46,8 @@ class TechnicalStrategy(Strategy):
         up[up < 0] = 0
         down[down > 0] = 0
 
-        avg_gain = up.ewm(
-            com=(self._rsi_length - 1), min_periods=self._rsi_length
-        ).mean()
-        avg_loss = (
-            down.abs()
-            .ewm(com=(self._rsi_length - 1), min_periods=self._rsi_length)
-            .mean()
-        )
+        avg_gain = up.ewm(com=(self._rsi_length - 1), min_periods=self._rsi_length).mean()
+        avg_loss = down.abs().ewm(com=(self._rsi_length - 1), min_periods=self._rsi_length).mean()
 
         rs = avg_gain / avg_loss
         rsi = 100 - 100 / (1 + rs)

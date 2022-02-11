@@ -197,46 +197,32 @@ class StrategyEditor(tk.Frame):
             code_name = base_params["code_name"]
             if base_params["widget"] == tk.OptionMenu:
                 self.body_widgets[code_name + "_var"][b_index] = tk.StringVar()
-                self.body_widgets[code_name + "_var"][b_index].set(
-                    base_params["values"][0]
-                )
+                self.body_widgets[code_name + "_var"][b_index].set(base_params["values"][0])
                 self.body_widgets[code_name][b_index] = tk.OptionMenu(
                     self._table_frame,
                     self.body_widgets[code_name + "_var"][b_index],
                     *base_params["values"],
                 )
-                self.body_widgets[code_name][b_index].config(
-                    width=base_params["width"]
-                )
+                self.body_widgets[code_name][b_index].config(width=base_params["width"])
             elif base_params["widget"] == tk.Entry:
-                self.body_widgets[code_name][b_index] = tk.Entry(
-                    self._table_frame, justify=tk.CENTER
-                )
+                self.body_widgets[code_name][b_index] = tk.Entry(self._table_frame, justify=tk.CENTER)
             elif base_params["widget"] == tk.Button:
                 self.body_widgets[code_name][b_index] = tk.Button(
                     self._table_frame,
                     text=base_params["text"],
                     bg=base_params["bg"],
                     fg=FG_COLOR,
-                    command=lambda frozen_command=base_params[
-                        "command"
-                    ]: frozen_command(b_index),
+                    command=lambda frozen_command=base_params["command"]: frozen_command(b_index),
                 )
             elif base_params["widget"] == ttk.Combobox:
                 self.body_widgets[code_name + "_var"][b_index] = tk.StringVar()
-                self.body_widgets[code_name + "_var"][b_index].set(
-                    base_params["values"][0]
-                )
+                self.body_widgets[code_name + "_var"][b_index].set(base_params["values"][0])
                 self.body_widgets[code_name][b_index] = ttk.Combobox(
                     self._table_frame,
-                    textvariable=self.body_widgets[code_name + "_var"][
-                        b_index
-                    ],
+                    textvariable=self.body_widgets[code_name + "_var"][b_index],
                     values=base_params["values"],
                 )
-                self.body_widgets[code_name][b_index].config(
-                    width=base_params["width"]
-                )
+                self.body_widgets[code_name][b_index].config(width=base_params["width"])
             else:
                 continue
 
@@ -262,9 +248,7 @@ class StrategyEditor(tk.Frame):
 
         self._popup_window.geometry(f"+{x - 80}+{y + 30}")
 
-        strategy_selected = self.body_widgets["strategy_type_var"][
-            b_index
-        ].get()
+        strategy_selected = self.body_widgets["strategy_type_var"][b_index].get()
 
         row_nb = 0
         for param in self._extra_params[strategy_selected]:
@@ -307,17 +291,13 @@ class StrategyEditor(tk.Frame):
         validation_button.grid(row=row_nb, column=0, columnspan=2)
 
     def _validate_parameters(self, b_index: int):
-        strategy_selected = self.body_widgets["strategy_type_var"][
-            b_index
-        ].get()
+        strategy_selected = self.body_widgets["strategy_type_var"][b_index].get()
         for param in self._extra_params[strategy_selected]:
             code_name = param["code_name"]
             if self._extra_input[code_name].get() == "":
                 self._additional_parameters[b_index][code_name] = None
             else:
-                self._additional_parameters[b_index][code_name] = param[
-                    "data_type"
-                ](self._extra_input[code_name].get())
+                self._additional_parameters[b_index][code_name] = param["data_type"](self._extra_input[code_name].get())
 
         self._popup_window.destroy()
 
@@ -327,24 +307,15 @@ class StrategyEditor(tk.Frame):
                 self.root.logging_frame.add_log(f"Missing {param} parameter")
                 return
 
-        strategy_selected = self.body_widgets["strategy_type_var"][
-            b_index
-        ].get()
+        strategy_selected = self.body_widgets["strategy_type_var"][b_index].get()
         for param in self._extra_params[strategy_selected]:
-            if (
-                self._additional_parameters[b_index][param["code_name"]]
-                is None
-            ):
-                self.root.logging_frame.add_log(
-                    f"Missing {param['code_name']} parameter"
-                )
+            if self._additional_parameters[b_index][param["code_name"]] is None:
+                self.root.logging_frame.add_log(f"Missing {param['code_name']} parameter")
                 return
 
         symbol = self.body_widgets["contract_var"][b_index].get().split("_")[0]
         timeframe = self.body_widgets["timeframe_var"][b_index].get()
-        exchange = (
-            self.body_widgets["contract_var"][b_index].get().split("_")[1]
-        )
+        exchange = self.body_widgets["contract_var"][b_index].get().split("_")[1]
 
         contract = self._exchanges[exchange].contracts[symbol]
 
@@ -378,50 +349,30 @@ class StrategyEditor(tk.Frame):
             else:
                 return
 
-            new_strategy.candles = self._exchanges[
-                exchange
-            ].get_historical_candles(contract, timeframe)
+            new_strategy.candles = self._exchanges[exchange].get_historical_candles(contract, timeframe)
             if len(new_strategy.candles) == 0:
-                self.root.logging_frame.add_log(
-                    f"No historical data retrieved for {contract.symbol}"
-                )
+                self.root.logging_frame.add_log(f"No historical data retrieved for {contract.symbol}")
                 return
             if exchange == Exchange.binance.value:
-                self._exchanges[exchange].subscribe_channel(
-                    [contract], "aggTrade"
-                )
+                self._exchanges[exchange].subscribe_channel([contract], "aggTrade")
 
             self._exchanges[exchange].strategies[b_index] = new_strategy
 
             for param in self._base_params:
                 code_name = param["code_name"]
                 if code_name != "activation" and "_var" not in code_name:
-                    self.body_widgets[code_name][b_index].config(
-                        state=tk.DISABLED
-                    )
-            self.body_widgets["activation"][b_index].config(
-                bg=BUTTON_GREEN, text="ON"
-            )
-            self.root.logging_frame.add_log(
-                f"{strategy_selected} strategy on {symbol} / "
-                f"{timeframe} started"
-            )
+                    self.body_widgets[code_name][b_index].config(state=tk.DISABLED)
+            self.body_widgets["activation"][b_index].config(bg=BUTTON_GREEN, text="ON")
+            self.root.logging_frame.add_log(f"{strategy_selected} strategy on {symbol} / " f"{timeframe} started")
         else:
             del self._exchanges[exchange].strategies[b_index]
 
             for param in self._base_params:
                 code_name = param["code_name"]
                 if code_name != "activation" and "_var" not in code_name:
-                    self.body_widgets[code_name][b_index].config(
-                        state=tk.NORMAL
-                    )
-            self.body_widgets["activation"][b_index].config(
-                bg=BUTTON_DELETE_COLOR, text="OFF"
-            )
-            self.root.logging_frame.add_log(
-                f"{strategy_selected} strategy on {symbol} / "
-                f"{timeframe} stopped"
-            )
+                    self.body_widgets[code_name][b_index].config(state=tk.NORMAL)
+            self.body_widgets["activation"][b_index].config(bg=BUTTON_DELETE_COLOR, text="OFF")
+            self.root.logging_frame.add_log(f"{strategy_selected} strategy on {symbol} / " f"{timeframe} stopped")
 
     def _delete_row(self, b_index: int):
         for element in self._base_params:

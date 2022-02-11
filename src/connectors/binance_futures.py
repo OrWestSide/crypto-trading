@@ -34,9 +34,7 @@ logger = logging.getLogger()
 
 
 class BinanceFuturesClient:
-    def __init__(
-        self, public_key: str, private_key: str, testnet: bool
-    ) -> None:
+    def __init__(self, public_key: str, private_key: str, testnet: bool) -> None:
         if testnet:
             self._base_url = BINANCE_TESTNET_BASE_URL
             self._wss_url = BINANCE_TESTNET_WS_URL
@@ -53,9 +51,7 @@ class BinanceFuturesClient:
         self.balances = self.get_balances()
 
         self.prices = dict()
-        self.strategies: Dict[
-            int, Union[TechnicalStrategy, BreakoutStrategy]
-        ] = dict()
+        self.strategies: Dict[int, Union[TechnicalStrategy, BreakoutStrategy]] = dict()
 
         self.logs = []
         self._ws_id = 1
@@ -77,9 +73,7 @@ class BinanceFuturesClient:
             hashlib.sha256,
         ).hexdigest()
 
-    def _make_request(
-        self, method: Methods, endpoint: str, data: Optional[Dict]
-    ):
+    def _make_request(self, method: Methods, endpoint: str, data: Optional[Dict]):
         if method == Methods.GET:
             try:
                 response = requests.get(
@@ -138,27 +132,19 @@ class BinanceFuturesClient:
             return None
 
     def get_contracts(self) -> Dict[str, Contract]:
-        exchange_info = self._make_request(
-            Methods.GET, BINANCE_CONTRACTS_URL, None
-        )
+        exchange_info = self._make_request(Methods.GET, BINANCE_CONTRACTS_URL, None)
 
         contracts = dict()
         if exchange_info is not None:
             for contract_data in exchange_info["symbols"]:
-                contracts[contract_data["symbol"]] = Contract(
-                    contract_data, Exchange.binance
-                )
+                contracts[contract_data["symbol"]] = Contract(contract_data, Exchange.binance)
 
         return contracts
 
-    def get_historical_candles(
-        self, contract: Contract, interval: str
-    ) -> List[Candle]:
+    def get_historical_candles(self, contract: Contract, interval: str) -> List[Candle]:
         data = {"symbol": contract.symbol, "interval": interval, "limit": 1000}
 
-        raw_candles = self._make_request(
-            Methods.GET, BINANCE_HISTORIC_CANDLES_URL, data
-        )
+        raw_candles = self._make_request(Methods.GET, BINANCE_HISTORIC_CANDLES_URL, data)
 
         candles = []
         if raw_candles is not None:
@@ -177,12 +163,8 @@ class BinanceFuturesClient:
                     "ask": float(ob_data["askPrice"]),
                 }
             else:
-                self.prices[contract.symbol]["bid"] = float(
-                    ob_data["bidPrice"]
-                )
-                self.prices[contract.symbol]["ask"] = float(
-                    ob_data["askPrice"]
-                )
+                self.prices[contract.symbol]["bid"] = float(ob_data["bidPrice"])
+                self.prices[contract.symbol]["ask"] = float(ob_data["askPrice"])
 
             return self.prices[contract.symbol]
 
@@ -192,9 +174,7 @@ class BinanceFuturesClient:
         data["signature"] = self._generate_signature(data)
 
         balances = dict()
-        account_data = self._make_request(
-            Methods.GET, BINANCE_ACCOUNT_URL, data
-        )
+        account_data = self._make_request(Methods.GET, BINANCE_ACCOUNT_URL, data)
         if account_data is not None:
             for a in account_data["assets"]:
                 balances[a["asset"]] = Balance(a, Exchange.binance)
@@ -213,22 +193,16 @@ class BinanceFuturesClient:
         data = dict()
         data["symbol"] = contract.symbol
         data["side"] = side.upper()
-        data["quantity"] = round(
-            round(quantity / contract.lot_size) * contract.lot_size, 8
-        )
+        data["quantity"] = round(round(quantity / contract.lot_size) * contract.lot_size, 8)
         data["type"] = order_type
         if price is not None:
-            data["price"] = round(
-                round(price / contract.tick_size) * contract.tick_size, 8
-            )
+            data["price"] = round(round(price / contract.tick_size) * contract.tick_size, 8)
         if time_in_force is not None:
             data["timeInForce"] = time_in_force
         data["timestamp"] = int(time.time() * 1000)
         data["signature"] = self._generate_signature(data)
 
-        order_status = self._make_request(
-            Methods.POST, BINANCE_ORDER_URL, data
-        )
+        order_status = self._make_request(Methods.POST, BINANCE_ORDER_URL, data)
         if order_status is not None:
             order_status = OrderStatus(order_status, Exchange.binance)
 
@@ -241,17 +215,13 @@ class BinanceFuturesClient:
         data["timestamp"] = int(time.time() * 1000)
         data["signature"] = self._generate_signature(data)
 
-        order_status = self._make_request(
-            Methods.DELETE, BINANCE_ORDER_URL, data
-        )
+        order_status = self._make_request(Methods.DELETE, BINANCE_ORDER_URL, data)
         if order_status is not None:
             order_status = OrderStatus(order_status, Exchange.binance)
 
         return order_status
 
-    def get_order_status(
-        self, contract: Contract, order_id: str
-    ) -> OrderStatus:
+    def get_order_status(self, contract: Contract, order_id: str) -> OrderStatus:
         data = dict()
         data["timestamp"] = int(time.time() * 1000)
         data["symbol"] = contract.symbol
@@ -314,24 +284,19 @@ class BinanceFuturesClient:
                                     elif trade.side == "short":
                                         trade.pnl = (trade.entry_price - self.prices[symbol]["ask"]) * trade.quantity
                 except RuntimeError as e:
-                    logger.error("Error while looping through the Binance strategies: %s",e)
+                    logger.error("Error while looping through the Binance strategies: %s", e)
 
             elif data["e"] == "aggTrade":
                 symbol = data["s"]
                 for key, strategy in self.strategies.items():
                     if strategy.contract.symbol == symbol:
-                        res = strategy.parse_trades(
-                            float(data["p"]), float(data["q"]), data["T"]
-                        )
+                        res = strategy.parse_trades(float(data["p"]), float(data["q"]), data["T"])
                         strategy.check_trade(res)
 
     def subscribe_channel(self, contracts: List[Contract], channel: str):
         data = {
             "method": "SUBSCRIBE",
-            "params": [
-                f"{contract.symbol.lower()}@{channel}"
-                for contract in contracts
-            ],
+            "params": [f"{contract.symbol.lower()}@{channel}" for contract in contracts],
             "id": self._ws_id,
         }
 
@@ -348,9 +313,7 @@ class BinanceFuturesClient:
 
         self._ws_id += 1
 
-    def get_trade_size(
-        self, contract: Contract, price: float, balance_pct: float
-    ):
+    def get_trade_size(self, contract: Contract, price: float, balance_pct: float):
         balance = self.get_balances()
         if balance is not None:
             if "USDT" in balance:
@@ -361,9 +324,7 @@ class BinanceFuturesClient:
             return None
 
         trade_size = (balance * balance_pct / 100) / price
-        trade_size = round(
-            round(trade_size / contract.lot_size) * contract.lot_size, 8
-        )
+        trade_size = round(round(trade_size / contract.lot_size) * contract.lot_size, 8)
 
         logger.info(
             "Binance futures current USDT balance = %s, trade size = %s",

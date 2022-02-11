@@ -21,7 +21,5 @@ class Logging(tk.Frame):
 
     def add_log(self, message: str):
         self.logging_text.configure(state=tk.NORMAL)
-        self.logging_text.insert(
-            "1.0", datetime.now().strftime("%a %H:%m:%S :: ") + message + "\n"
-        )
+        self.logging_text.insert("1.0", datetime.now().strftime("%a %H:%m:%S :: ") + message + "\n")
         self.logging_text.configure(state=tk.DISABLED)
