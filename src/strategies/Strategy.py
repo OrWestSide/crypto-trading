@@ -39,7 +39,7 @@ class Strategy:
 
         self.strategy_name = strategy_name
 
-        self.open_position = False
+        self.ongoing_position = False
 
         self.candles: List[Candle] = []
         self.trades: List[Trade] = []

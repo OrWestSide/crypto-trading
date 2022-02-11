@@ -48,7 +48,7 @@ class BreakoutStrategy(Strategy):
             return 0
 
     def check_trade(self, tick_type: str):
-        if not self.open_position:
+        if not self.ongoing_position:
             signal_result = self._check_signal()
             if signal_result in [-1, 1]:
                 self._open_position(signal_result)

@@ -1,6 +1,7 @@
+import datetime
 import tkinter as tk
-from typing import Dict
 
+from models.Trade import Trade
 from ui.styling import BG_COLOR, FG_COLOR, BOLD_FONT, FG_COLOR_2, GLOBAL_FONT
 
 
@@ -41,14 +42,16 @@ class TradesWatch(tk.Frame):
 
         self._body_index = 1
 
-    def add_trade(self, data: Dict):
+    def add_trade(self, trade: Trade):
         b_index = self._body_index
-        t_index = data["time"]
+        t_index = trade.time
+
+        dt_str = datetime.datetime.fromtimestamp(trade.time / 1000).strftime("%b %d %H:%M")
 
         # Time
         self.body_widgets["time"][t_index] = tk.Label(
             self._table_frame,
-            text=data["time"],
+            text=dt_str,
             bg=BG_COLOR,
             fg=FG_COLOR_2,
             font=GLOBAL_FONT,
@@ -58,7 +61,7 @@ class TradesWatch(tk.Frame):
         # Symbol
         self.body_widgets["symbol"][t_index] = tk.Label(
             self._table_frame,
-            text=data["symbol"],
+            text=trade.contract.symbol,
             bg=BG_COLOR,
             fg=FG_COLOR_2,
             font=GLOBAL_FONT,
@@ -68,7 +71,7 @@ class TradesWatch(tk.Frame):
         # Exchange
         self.body_widgets["exchange"][t_index] = tk.Label(
             self._table_frame,
-            text=data["exchange"],
+            text=trade.contract.exchange.value.capitalize(),
             bg=BG_COLOR,
             fg=FG_COLOR_2,
             font=GLOBAL_FONT,
@@ -78,7 +81,7 @@ class TradesWatch(tk.Frame):
         # Strategy
         self.body_widgets["strategy"][t_index] = tk.Label(
             self._table_frame,
-            text=data["strategy"],
+            text=trade.strategy,
             bg=BG_COLOR,
             fg=FG_COLOR_2,
             font=GLOBAL_FONT,
@@ -88,7 +91,7 @@ class TradesWatch(tk.Frame):
         # Side
         self.body_widgets["side"][t_index] = tk.Label(
             self._table_frame,
-            text=data["side"],
+            text=trade.side.capitalize(),
             bg=BG_COLOR,
             fg=FG_COLOR_2,
             font=GLOBAL_FONT,
@@ -98,7 +101,7 @@ class TradesWatch(tk.Frame):
         # Quantity
         self.body_widgets["quantity"][t_index] = tk.Label(
             self._table_frame,
-            text=data["quantity"],
+            text=trade.quantity,
             bg=BG_COLOR,
             fg=FG_COLOR_2,
             font=GLOBAL_FONT,

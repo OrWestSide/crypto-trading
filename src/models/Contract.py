@@ -42,3 +42,5 @@ class Contract:
             self.multiplier = contract_info["multiplier"] * BITMEX_MULTIPLIER
             if self.inverse:
                 self.multiplier *= -1
+
+        self.exchange = exchange

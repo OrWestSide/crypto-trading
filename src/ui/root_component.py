@@ -3,6 +3,7 @@ import tkinter as tk
 
 from connectors.binance_futures import BinanceFuturesClient
 from connectors.bitmex import BitmexClient
+from helpers.Exchange import Exchange
 from ui.logging_component import Logging
 from ui.strategy_component import StrategyEditor
 from ui.styling import BG_COLOR
@@ -60,6 +61,31 @@ class Root(tk.Tk):
             if not log["displayed"]:
                 self.logging_frame.add_log(log["log"])
                 log["displayed"] = True
+
+        # Trades and logs
+        for client in [self.binance, self.bitmex]:
+            try:
+                for b_index, strategy in client.strategies.items():
+                    for log in strategy.logs:
+                        if not log["displayed"]:
+                            self.logging_frame.add_log(log["log"])
+                            log["displayed"] = True
+
+                    for trade in strategy.trades:
+                        if trade.time not in self._trades_frame.body_widgets["symbol"]:
+                            self._trades_frame.add_trade(trade)
+
+                        if trade.contract.exchange == Exchange.binance:
+                            precision = trade.contract.price_decimals
+                        else:
+                            precision = 8
+
+                        pnl_str = "{0:.{prec}f}".format(trade.pnl, prec=precision)
+                        self._trades_frame.body_widgets["pnl_var"][trade.time].set(pnl_str)
+                        self._trades_frame.body_widgets["status_var"][trade.time].set(trade.status.capitalize())
+
+            except RuntimeError as e:
+                logger.error("Error while looping through watchlist dictionary: %s", e)
 
         # Watchlist
         try:
