@@ -5,6 +5,7 @@ from connectors.binance_futures import BinanceFuturesClient
 from connectors.bitmex import BitmexClient
 from helpers.Exchange import Exchange
 from helpers.Strategies import Strategies
+from helpers.validators import check_integer_format, check_float_format
 from strategies.BreakoutStrategy import BreakoutStrategy
 from strategies.TechnicalStrategy import TechnicalStrategy
 from ui.styling import (
@@ -30,6 +31,9 @@ class StrategyEditor(tk.Frame):
         super().__init__(*args, **kwargs)
 
         self.root = root
+
+        self._valid_integer = self.register(check_integer_format)
+        self._valid_float = self.register(check_float_format)
 
         self._exchanges = {"Binance": binance, "Bitmex": bitmex}
 
@@ -206,6 +210,15 @@ class StrategyEditor(tk.Frame):
                 self.body_widgets[code_name][b_index].config(width=base_params["width"])
             elif base_params["widget"] == tk.Entry:
                 self.body_widgets[code_name][b_index] = tk.Entry(self._table_frame, justify=tk.CENTER)
+
+                if base_params["data_type"] == int:
+                    self.body_widgets[code_name][b_index].config(
+                        validate="key", validatecommand=(self._valid_integer, "%P")
+                    )
+                if base_params["data_type"] == float:
+                    self.body_widgets[code_name][b_index].config(
+                        validate="key", validatecommand=(self._valid_float, "%P")
+                    )
             elif base_params["widget"] == tk.Button:
                 self.body_widgets[code_name][b_index] = tk.Button(
                     self._table_frame,
@@ -270,6 +283,12 @@ class StrategyEditor(tk.Frame):
                     fg=FG_COLOR,
                     insertbackground=FG_COLOR,
                 )
+
+                if param["data_type"] == int:
+                    self._extra_input[code_name].config(validate="key", validatecommand=(self._valid_integer, "%P"))
+                if param["data_type"] == float:
+                    self._extra_input[code_name].config(validate="key", validatecommand=(self._valid_float, "%P"))
+
                 if self._additional_parameters[b_index][code_name] is not None:
                     self._extra_input[code_name].insert(
                         tk.END,
