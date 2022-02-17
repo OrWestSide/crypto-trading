@@ -55,7 +55,8 @@ class BinanceFuturesClient:
 
         self.logs = []
         self._ws_id = 1
-        self._ws = None
+        self.ws: websocket.WebSocketApp
+        self.reconnect = True
 
         t = threading.Thread(target=self._start_ws)
         t.start()
@@ -244,7 +245,10 @@ class BinanceFuturesClient:
         )
         while True:
             try:
-                self.ws.run_forever()
+                if self.reconnect:
+                    self.ws.run_forever()
+                else:
+                    break
             except Exception as e:
                 logger.error("Binance error in run_forever() method: %s", e)
             time.sleep(2)

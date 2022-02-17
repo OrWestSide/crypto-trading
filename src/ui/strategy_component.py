@@ -8,6 +8,7 @@ from helpers.Strategies import Strategies
 from helpers.validators import check_integer_format, check_float_format
 from strategies.BreakoutStrategy import BreakoutStrategy
 from strategies.TechnicalStrategy import TechnicalStrategy
+from ui.scrollable_frame import ScrollableFrame
 from ui.styling import (
     BG_COLOR,
     GLOBAL_FONT,
@@ -62,14 +63,7 @@ class StrategyEditor(tk.Frame):
 
         self.body_widgets = dict()
 
-        self._headers = [
-            "Strategy",
-            "Contract",
-            "Timeframe",
-            "Balance %",
-            "TP %",
-            "SL %",
-        ]
+        self._headers_frame = tk.Frame(self._table_frame, bg=BG_COLOR)
 
         self._additional_parameters = dict()
         self._extra_input = dict()
@@ -81,6 +75,7 @@ class StrategyEditor(tk.Frame):
                 "data_type": str,
                 "values": Strategies.values(),
                 "width": 10,
+                "header": "Strategy",
             },
             {
                 "code_name": "contract",
@@ -88,32 +83,19 @@ class StrategyEditor(tk.Frame):
                 "data_type": str,
                 "values": self._all_contracts,
                 "width": 15,
+                "header": "Contract",
             },
             {
                 "code_name": "timeframe",
                 "widget": tk.OptionMenu,
                 "data_type": str,
                 "values": self._all_timeframes,
-                "width": 7,
+                "width": 10,
+                "header": "Timeframe",
             },
-            {
-                "code_name": "balance_pct",
-                "widget": tk.Entry,
-                "data_type": float,
-                "width": 7,
-            },
-            {
-                "code_name": "take_profit",
-                "widget": tk.Entry,
-                "data_type": float,
-                "width": 7,
-            },
-            {
-                "code_name": "stop_loss",
-                "widget": tk.Entry,
-                "data_type": float,
-                "width": 7,
-            },
+            {"code_name": "balance_pct", "widget": tk.Entry, "data_type": float, "width": 10, "header": "Balance %"},
+            {"code_name": "take_profit", "widget": tk.Entry, "data_type": float, "width": 7, "header": "TP %"},
+            {"code_name": "stop_loss", "widget": tk.Entry, "data_type": float, "width": 7, "header": "SL %"},
             {
                 "code_name": "parameters",
                 "widget": tk.Button,
@@ -121,6 +103,8 @@ class StrategyEditor(tk.Frame):
                 "text": "Parameters",
                 "bg": BG_COLOR_2,
                 "command": self._show_popup,
+                "header": "",
+                "width": 8,
             },
             {
                 "code_name": "activation",
@@ -129,6 +113,8 @@ class StrategyEditor(tk.Frame):
                 "text": "OFF",
                 "bg": BUTTON_DELETE_COLOR,
                 "command": self._switch_strategy,
+                "header": "",
+                "width": 6,
             },
             {
                 "code_name": "delete",
@@ -137,6 +123,8 @@ class StrategyEditor(tk.Frame):
                 "text": "X",
                 "bg": BUTTON_DELETE_COLOR,
                 "command": self._delete_row,
+                "header": "",
+                "width": 4,
             },
         ]
 
@@ -177,15 +165,27 @@ class StrategyEditor(tk.Frame):
             ],
         }
 
-        for idx, h in enumerate(self._headers):
+        for idx, h in enumerate(self._base_params):
             header = tk.Label(
-                self._table_frame,
-                text=h,
+                self._headers_frame,
+                text=h["header"],
                 bg=BG_COLOR,
                 fg=FG_COLOR,
-                font=BOLD_FONT,
+                font=GLOBAL_FONT,
+                width=h["width"],
+                bd=1,
+                relief=tk.FLAT,
             )
-            header.grid(row=0, column=idx)
+            header.grid(row=0, column=idx, padx=2)
+        header = tk.Label(
+            self._headers_frame, text="", bg=BG_COLOR, fg=FG_COLOR, font=GLOBAL_FONT, width=8, bd=1, relief=tk.FLAT
+        )
+        header.grid(row=0, column=len(self._base_params), padx=2)
+
+        self._headers_frame.pack(side=tk.TOP, anchor="nw")
+
+        self._body_frame = ScrollableFrame(self._table_frame, bg=BG_COLOR, height=250)
+        self._body_frame.pack(side=tk.TOP, fill=tk.X, anchor="nw")
 
         for h in self._base_params:
             self.body_widgets[h["code_name"]] = dict()
@@ -203,13 +203,22 @@ class StrategyEditor(tk.Frame):
                 self.body_widgets[code_name + "_var"][b_index] = tk.StringVar()
                 self.body_widgets[code_name + "_var"][b_index].set(base_params["values"][0])
                 self.body_widgets[code_name][b_index] = tk.OptionMenu(
-                    self._table_frame,
+                    self._body_frame.sub_frame,
                     self.body_widgets[code_name + "_var"][b_index],
                     *base_params["values"],
                 )
-                self.body_widgets[code_name][b_index].config(width=base_params["width"])
+                self.body_widgets[code_name][b_index].config(
+                    width=base_params["width"], bd=0, indicatoron=0, font=GLOBAL_FONT, highlightthickness=False
+                )
             elif base_params["widget"] == tk.Entry:
-                self.body_widgets[code_name][b_index] = tk.Entry(self._table_frame, justify=tk.CENTER)
+                self.body_widgets[code_name][b_index] = tk.Entry(
+                    self._body_frame.sub_frame,
+                    justify=tk.CENTER,
+                    font=GLOBAL_FONT,
+                    bd=1,
+                    highlightthickness=False,
+                    width=base_params["width"],
+                )
 
                 if base_params["data_type"] == int:
                     self.body_widgets[code_name][b_index].config(
@@ -221,25 +230,27 @@ class StrategyEditor(tk.Frame):
                     )
             elif base_params["widget"] == tk.Button:
                 self.body_widgets[code_name][b_index] = tk.Button(
-                    self._table_frame,
+                    self._body_frame.sub_frame,
                     text=base_params["text"],
                     bg=base_params["bg"],
                     fg=FG_COLOR,
+                    font=GLOBAL_FONT,
+                    width=base_params["width"],
                     command=lambda frozen_command=base_params["command"]: frozen_command(b_index),
                 )
             elif base_params["widget"] == ttk.Combobox:
                 self.body_widgets[code_name + "_var"][b_index] = tk.StringVar()
                 self.body_widgets[code_name + "_var"][b_index].set(base_params["values"][0])
                 self.body_widgets[code_name][b_index] = ttk.Combobox(
-                    self._table_frame,
+                    self._body_frame.sub_frame,
                     textvariable=self.body_widgets[code_name + "_var"][b_index],
                     values=base_params["values"],
                 )
-                self.body_widgets[code_name][b_index].config(width=base_params["width"])
+                self.body_widgets[code_name][b_index].config(width=base_params["width"], font=GLOBAL_FONT)
             else:
                 continue
 
-            self.body_widgets[code_name][b_index].grid(row=b_index, column=col)
+            self.body_widgets[code_name][b_index].grid(row=b_index, column=col, padx=2)
 
         self._additional_parameters[b_index] = dict()
 

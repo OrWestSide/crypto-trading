@@ -9,13 +9,7 @@ class Logging(tk.Frame):
         super().__init__(*args, **kwargs)
 
         self.logging_text = tk.Text(
-            self,
-            height=10,
-            width=60,
-            state=tk.DISABLED,
-            bg=BG_COLOR,
-            fg=FG_COLOR_2,
-            font=GLOBAL_FONT,
+            self, height=10, width=60, state=tk.DISABLED, bg=BG_COLOR, fg=FG_COLOR_2, font=GLOBAL_FONT, bd=0
         )
         self.logging_text.pack(side=tk.TOP)
 
