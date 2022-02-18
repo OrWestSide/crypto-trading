@@ -115,6 +115,8 @@ class Root(tk.Tk):
                 if exchange == "Binance":
                     if symbol not in self.binance.contracts:
                         continue
+                    if symbol not in self.binance.ws_subscriptions["bookTicker"] and self.binance.ws_connected:
+                        self.binance.subscribe_channel([self.binance.contracts[symbol]], "bookTicker")
                     if symbol not in self.binance.prices:
                         self.binance.get_bid_ask(self.binance.contracts[symbol])
                         continue

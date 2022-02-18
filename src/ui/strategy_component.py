@@ -391,6 +391,7 @@ class StrategyEditor(tk.Frame):
                 return
             if exchange == Exchange.binance.value:
                 self._exchanges[exchange].subscribe_channel([contract], "aggTrade")
+                self._exchanges[exchange].subscribe_channel([contract], "bookTicker")
 
             self._exchanges[exchange].strategies[b_index] = new_strategy
 

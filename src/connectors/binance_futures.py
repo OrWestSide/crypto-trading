@@ -54,9 +54,12 @@ class BinanceFuturesClient:
         self.strategies: Dict[int, Union[TechnicalStrategy, BreakoutStrategy]] = dict()
 
         self.logs = []
+
         self._ws_id = 1
         self.ws: websocket.WebSocketApp
         self.reconnect = True
+        self.ws_connected = False
+        self.ws_subscriptions = {"bookTicker": [], "aggTrade": []}
 
         t = threading.Thread(target=self._start_ws)
         t.start()
@@ -255,10 +258,19 @@ class BinanceFuturesClient:
 
     def _on_open(self, ws):
         logger.info("Binance connection opened")
-        self.subscribe_channel(list(self.contracts.values()), "bookTicker")
+
+        self.ws_connected = True
+
+        for channel in ["bookTicker", "aggTrade"]:
+            for symbol in self.ws_subscriptions[channel]:
+                self.subscribe_channel([self.contracts[symbol]], channel)
+
+        if "BTCUSDT" not in self.ws_subscriptions["bookTicker"]:
+            self.subscribe_channel([self.contracts["BTCUSDT"]], "bookTicker")
 
     def _on_close(self, ws):
         logger.warning("Binance Websocket connection closed")
+        self.ws_connected = False
 
     def _on_error(self, ws, msg: str):
         logger.error("Binance connection error: %s", msg)
@@ -298,14 +310,33 @@ class BinanceFuturesClient:
                         strategy.check_trade(res)
 
     def subscribe_channel(self, contracts: List[Contract], channel: str):
+        if len(contracts) > 200:
+            logger.warning("Subscribing to more then 200 symbols will most likely fail."
+                           "Consider subscribing only when adding a symbol to your watchlist or when"
+                           "starting a strategy for a symbol")
+
         data = {
             "method": "SUBSCRIBE",
-            "params": [f"{contract.symbol.lower()}@{channel}" for contract in contracts],
+            "params": [],
             "id": self._ws_id,
         }
 
+        if len(contracts) == 0:
+            data["params"].append(channel)
+        else:
+            for contract in contracts:
+                if contract.symbol not in self.ws_subscriptions[channel]:
+                    data["params"].append(contract.symbol.lower() + "@" + channel)
+                    self.ws_subscriptions[channel].append(contract.symbol)
+
+            if len(data["params"]) == 0:
+                return
+
+        data["id"] = self._ws_id
+
         try:
             self.ws.send(json.dumps(data))
+            logger.info("Binance: subscribing to: %s", ','.join(data["params"]))
         except Exception as e:
             logger.error(
                 "Connection error while subscribing to %s %s updates: %s",
