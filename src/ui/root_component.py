@@ -170,7 +170,9 @@ class Root(tk.Tk):
                 code_name = param["code_name"]
                 extra_params[code_name] = self._strategy_frame.additional_parameters[b_index][code_name]
 
-            strategies.append((strategy_type, contract, timeframe, balance_pct, take_profit, stop_loss, json.dumps(extra_params)))
+            strategies.append(
+                (strategy_type, contract, timeframe, balance_pct, take_profit, stop_loss, json.dumps(extra_params))
+            )
 
         self._strategy_frame.db.save("strategies", strategies)
 

@@ -428,7 +428,7 @@ class StrategyEditor(tk.Frame):
 
                 if base_params["widget"] == tk.OptionMenu or base_params["widget"] == ttk.Combobox:
                     if row[code_name] is not None:
-                        self.body_widgets[code_name + '_var'][b_index].set(row[code_name])
+                        self.body_widgets[code_name + "_var"][b_index].set(row[code_name])
                 elif base_params["widget"] == tk.Entry:
                     if row[code_name] is not None:
                         self.body_widgets[code_name][b_index].insert(tk.END, row[code_name])
