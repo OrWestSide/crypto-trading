@@ -1,6 +1,7 @@
 import tkinter as tk
 from typing import Dict
 
+from database.database import WorkspaceData
 from helpers.Exchange import Exchange
 from models.Contract import Contract
 from ui.autocomplete_widget import Autocomplete
@@ -25,6 +26,8 @@ class Watchlist(tk.Frame):
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
+
+        self.db = WorkspaceData()
 
         self.binance_symbols = list(binance_contracts.keys())
         self.bitmex_symbols = list(bitmex_contracts.keys())
@@ -105,6 +108,10 @@ class Watchlist(tk.Frame):
                 self.body_widgets[f"{h}_var"] = dict()
 
         self._body_index = 0
+
+        saves_symbols = self.db.get("watchlist")
+        for s in saves_symbols:
+            self._add_symbol(s["symbol"], s["exchange"])
 
     def _remove_symbol(self, b_index: int):
         for h in self._headers:

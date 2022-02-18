@@ -3,5 +3,6 @@
 __pycache__/
 
 info.log
+src/database.db
 
 venv
